@@ -36,3 +36,4 @@ docs/
 .git/
 # Ignore Subversion version control files
 .svn/
+Getting Started with Express and NodeJS.md
