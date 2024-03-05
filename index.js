@@ -1,34 +1,52 @@
 const express = require("express");
-const dotenv = require("dotenv");
-const users = require("./MOCK_DATA.json");
-
-// Configure dotenv
-dotenv.config();
 const app = express();
-// Use the PORT environment variable if it's available
-const port = process.env.PORT || 3000;
+const dotenv = require("dotenv");
+dotenv.config();
+const users = require("./MOCK_DATA.json");
 const fs = require("fs");
+const mongoose = require("mongoose");
 
 app.use(express.urlencoded({ extended: false })); // act as a middleware to parse the body of the request. without this req.body return undefined. this body is being sent friom postman
-//  create a middleware
-app.use((req, res, next) => {
-  console.log(`Request Method: ${req.method} \n Request URL: ${req.url}`);
-  // if i leave it like this it will hang the request and will not continue to the next middleware or route handler
 
-  // if i return the response here it will not continue to the next middleware or route handler
-  // return res.send("Request has been blocked by the middleware")
+const port = process.env.PORT || 3000;
 
-  // if i call the next() function it will continue to the next middleware or route handler
-  console.log("Middleware is working fine");
-  next();
+// now lets use mongoDb
+// first letc create a schema
+const userSchema = new mongoose.Schema({
+  // first name require , email unique
+  first_name: {
+    type: String,
+    required: true,
+  },
+  last_name: {
+    type: String,
+  },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+  },
 });
 
-app.get("/", (req, res) => {
+// lets create a model
+const User = mongoose.model("User", userSchema);
+
+mongoose
+  .connect("mongodb://localhost:27017/mongo-tutorial")
+  .then(() => {
+    // Get the default connection
+    const db = mongoose.connection;
+
+    console.log("Connected to db:", db.name);
+  })
+  .catch((err) => {
+    console.error("Error connecting to db:", err);
+  });
+
+app.route("/").get((req, res) => {
   res.setHeader("x-running-on", "Node.js powered by express");
   res.send(`Hello to Rest Api Tutorial!`);
 });
-
-// lets create a hybrid api , if /users it should render html else it should render json if /api/users : this is done because client side my be anything not need to be a browser. this is a hybrid api
 
 app.get("/users", (req, res) => {
   const userList = users
@@ -54,35 +72,56 @@ app
     if (!users) {
       return res.status(404).send("No user found");
     }
-    res.send(res.json(users));
+    res.send(users);
   })
   .post((req, res) => {
-    const body = req.body;
-    console.log(`body : \n \t ${JSON.stringify(body)} \t \n \n`);
+    const { first_name, last_name, Gender, email, job_title } = req.body;
 
-    users.push({ id: users.length + 1, ...body });
+    if (!first_name) {
+      return res.status(400).send("First name is required");
+    }
+    if (!last_name) {
+      return res.status(400).send("Last name is required");
+    }
+    if (!email) {
+      return res.status(400).send("Email is required");
+    }
+    if (!job_title) {
+      return res.status(400).send("Job title is required");
+    }
+    if (!Gender) {
+      return res.status(400).send("Gender is Required");
+    }
 
-    fs.writeFile("./MOCK_DATA.json", JSON.stringify(users), (err) => {
-      if (err) {
-        console.log(err);
-      }
-      res.status(201).send("User added successfully");
-    });
+    users.push({ id: users.length + 1, ...req.body });
+    return res.status(201).send(users);
   });
 
-// now we should dynamically get the data of the single user /:id
+app
+  .route("/api/users/:id")
+  .get((req, res) => {
+    const user = users.find((user) => user.id === parseInt(req.params.id));
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.send(user);
+  })
+  .put((req, res) => {
+    let user = users.find((user) => user.id === parseInt(req.params.id));
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const { first_name, last_name, Gender, email, job_title } = req.body;
 
-app.get("/api/users/:id", (req, res) => {
-  console.log(req.params);
-  const user = users.find((user) => user.id === parseInt(req.params.id));
-  if (!user) {
-    return res.status(404).json({ message: "User not found" });
-  }
-  res.send(user);
-});
+    user.first_name = first_name;
+    user.last_name = last_name;
+    user.Gender = Gender;
+    user.email = email;
+    user.job_title = job_title;
 
-//
+    res.send(user);
+  });
 
 app.listen(port, () => {
-  console.log(`Server is running on: http://localhost:${port}`);
+  console.log(`Server running on http://localhost:${port}`);
 });
