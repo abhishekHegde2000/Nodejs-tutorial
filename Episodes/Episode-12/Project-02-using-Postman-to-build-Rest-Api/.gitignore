@@ -1,0 +1,39 @@
+# General
+# Ignore temporary files created by editors
+*.swp
+*.swo
+*.temp
+*.bak
+*.log
+*.cache
+
+# OS specific
+# Ignore hidden files on Linux/macOS
+.DS_Store
+
+# IDE specific
+# Ignore VS Code settings
+.vscode/
+# Ignore IntelliJ IDEA/PyCharm project configuration files
+.idea/
+
+# Build and package managers
+# Ignore Node.js dependencies
+node_modules/
+# Ignore npm package-lock.json files
+package-lock.json
+
+# Testing
+# Ignore test coverage reports
+coverage/
+
+# Documentation
+# Ignore generated documentation files
+docs/
+
+# Version control systems
+# Ignore Git version control files
+.git/
+# Ignore Subversion version control files
+.svn/
+

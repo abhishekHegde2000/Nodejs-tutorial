@@ -10,18 +10,6 @@ const port = process.env.PORT || 3000;
 const fs = require("fs");
 
 app.use(express.urlencoded({ extended: false })); // act as a middleware to parse the body of the request. without this req.body return undefined. this body is being sent friom postman
-//  create a middleware
-app.use((req, res, next) => {
-  console.log(`Request Method: ${req.method} \n Request URL: ${req.url}`);
-  // if i leave it like this it will hang the request and will not continue to the next middleware or route handler
-
-  // if i return the response here it will not continue to the next middleware or route handler
-  // return res.send("Request has been blocked by the middleware")
-
-  // if i call the next() function it will continue to the next middleware or route handler
-  console.log("Middleware is working fine");
-  next();
-});
 
 app.get("/", (req, res) => {
   res.send(`Hello to Rest Api Tutorial!`);
@@ -82,3 +70,29 @@ app.get("/api/users/:id", (req, res) => {
 app.listen(port, () => {
   console.log(`Server is running on: http://localhost:${port}`);
 });
+
+// as you can see some of the have same route path yet we are writing code differently, so we can use express router to make it more modular and clean.
+
+// lets make a route /api/workers/:id and use get ,post , put , patch , delete method to get the data of the single user /:id
+
+app
+  .route("/api/workers/:id")
+  .get((req, res) => {
+    const user = users.find((user) => user.id === parseInt(req.params.id));
+    if (!user) {
+      return res.status(404).send("User not found");
+    }
+    res.send(user);
+  })
+  .post((req, res) => {
+    res.send("Post request");
+  })
+  .put((req, res) => {
+    res.send("Put request");
+  })
+  .patch((req, res) => {
+    res.send("Patch request");
+  })
+  .delete((req, res) => {
+    res.send("Delete request");
+  });
