@@ -1,7 +1,14 @@
 const express = require("express");
 const app = express();
+const dotenv = require("dotenv");
+dotenv.config();
+const users = require("./MOCK_DATA.json");
+const fs = require("fs");
 const mongoose = require("mongoose");
-const port = 3000;
+
+app.use(express.urlencoded({ extended: false })); // act as a middleware to parse the body of the request. without this req.body return undefined. this body is being sent friom postman
+
+const port = process.env.PORT || 3000;
 
 // now lets use mongoDb
 // first letc create a schema
@@ -22,7 +29,7 @@ const userSchema = new mongoose.Schema({
 });
 
 // lets create a model
-const User = mongoose.model("user", userSchema);
+const User = mongoose.model("User", userSchema);
 
 mongoose
   .connect("mongodb://localhost:27017/mongo-tutorial")
@@ -41,33 +48,33 @@ app.route("/").get((req, res) => {
   res.send(`Hello to Rest Api Tutorial!`);
 });
 
-app.get("/users", async (req, res) => {
-  const AllUsers = await User.find();
-  console.log(AllUsers);
-
-  const List = AllUsers.map(
-    (user) => `
+app.get("/users", (req, res) => {
+  const userList = users
+    .map(
+      (user) => `
             <li>
                 <h2>${user.first_name} ${user.last_name}</h2>
                 <p>Email: ${user.email}</p>
+                <p>Gender: ${user.gender}</p>
                 <p>Job Title: ${user.job_title}</p>
-                <p>Gender: ${user.Gender}</p>
+                <img src="${user.avatar}" alt="${user.first_name} ${user.last_name}">
             </li>
         `
-  ).join("");
-
-  const html = `<ul>${List}</ul>`;
+    )
+    .join("");
+  const html = `<ul>${userList}</ul>`;
   res.send(html);
 });
 
 app
   .route("/api/users")
-  .get(async (req, res) => {
-    const AllUsers = await User.find();
-
-    res.status(200).json(AllUsers);
+  .get((req, res) => {
+    if (!users) {
+      return res.status(404).send("No user found");
+    }
+    res.send(users);
   })
-  .post(async (req, res) => {
+  .post((req, res) => {
     const { first_name, last_name, Gender, email, job_title } = req.body;
 
     if (!first_name) {
@@ -85,45 +92,34 @@ app
     if (!Gender) {
       return res.status(400).send("Gender is Required");
     }
-    const result = await User.create({
-      first_name,
-      last_name,
-      Gender,
-      email,
-      job_title,
-    });
 
-    return res.status(201).json({ message: "User added successfully", result });
+    users.push({ id: users.length + 1, ...req.body });
+    return res.status(201).send(users);
   });
 
 app
   .route("/api/users/:id")
-  .get(async (req, res) => {
-    const user = await User.findById(req.params.id);
+  .get((req, res) => {
+    const user = users.find((user) => user.id === parseInt(req.params.id));
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
     res.send(user);
   })
-  .put(async (req, res) => {
-    try {
-      const user = await User.findByIdAndUpdate(req.params.id, {
-        Gender: "female",
-        email: "123@abhi",
-      });
-      res.send(user);
-    } catch (err) {
-      console.log(err);
+  .put((req, res) => {
+    let user = users.find((user) => user.id === parseInt(req.params.id));
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
-  })
-  .delete(async (req, res) => {
-    try {
-      const user = await User.findByIdAndDelete(req.params.id);
-      console.log("user deleted", user);
-      return res.status(204).send("User deleted");
-    } catch (err) {
-      console.log(err);
-    }
+    const { first_name, last_name, Gender, email, job_title } = req.body;
+
+    user.first_name = first_name;
+    user.last_name = last_name;
+    user.Gender = Gender;
+    user.email = email;
+    user.job_title = job_title;
+
+    res.send(user);
   });
 
 app.listen(port, () => {
